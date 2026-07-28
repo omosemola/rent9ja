@@ -1,0 +1,702 @@
+// ============================================================================
+// RentNaija - Complete Database Schema
+// Nigerian Real Estate Rental Platform
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ENUMS
+// ============================================================================
+
+enum UserRole {
+  LANDLORD
+  HUNTER
+  ADMIN
+}
+
+enum PropertyType {
+  APARTMENT
+  DUPLEX
+  SELF_CONTAINED
+  MINI_FLAT
+  BUNGALOW
+  STUDIO
+  SHARED_APARTMENT
+  OFFICE_SPACE
+  SHOP
+  WAREHOUSE
+  LAND
+  HOSTEL
+}
+
+enum PropertyStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  RENTED
+  REJECTED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  FLOOR_PLAN
+  VIRTUAL_TOUR
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VOICE
+  DOCUMENT
+  LOCATION
+  APPOINTMENT
+}
+
+enum AppointmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  RESCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum SubscriptionPlan {
+  FREE
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentProvider {
+  PAYSTACK
+  FLUTTERWAVE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum ReportTargetType {
+  PROPERTY
+  USER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum NotificationType {
+  NEW_MESSAGE
+  APPOINTMENT_REQUEST
+  APPOINTMENT_ACCEPTED
+  APPOINTMENT_REJECTED
+  APPOINTMENT_REMINDER
+  NEW_LISTING
+  PRICE_REDUCTION
+  LISTING_APPROVED
+  LISTING_REJECTED
+  PROPERTY_RENTED
+  NEW_REVIEW
+  SYSTEM_ANNOUNCEMENT
+  SUBSCRIPTION_EXPIRING
+  PAYMENT_SUCCESS
+}
+
+// ============================================================================
+// USER MODELS
+// ============================================================================
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  phone             String?   @unique
+  passwordHash      String
+  role              UserRole
+  fullName          String
+  profilePicture    String?
+  isActive          Boolean   @default(true)
+  isEmailVerified   Boolean   @default(false)
+  isPhoneVerified   Boolean   @default(false)
+  lastLoginAt       DateTime?
+  fcmToken          String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  landlordProfile   LandlordProfile?
+  hunterProfile     HunterProfile?
+  properties        Property[]
+  sentMessages      Message[]         @relation("SentMessages")
+  favorites         Favorite[]
+  reviewsGiven      Review[]          @relation("ReviewsGiven")
+  reviewsReceived   Review[]          @relation("ReviewsReceived")
+  notifications     Notification[]
+  reportsFiled      Report[]          @relation("ReportsFiled")
+  reportsReceived   Report[]          @relation("ReportsReceived")
+  subscriptions     Subscription[]
+  payments          Payment[]
+  hunterAppointments  Appointment[]   @relation("HunterAppointments")
+  landlordAppointments Appointment[]  @relation("LandlordAppointments")
+  conversationParticipants ConversationParticipant[]
+  refreshTokens     RefreshToken[]
+  otpCodes          OtpCode[]
+  propertyViews     PropertyView[]
+  searchHistories   SearchHistory[]
+  auditLogs         AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@map("users")
+}
+
+model LandlordProfile {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  agencyName            String?
+  whatsappNumber        String?
+  about                 String?
+  yearsOfExperience     Int?     @default(0)
+  officeLocation        String?
+  preferredContactHours String?
+  languages             String[] @default(["English"])
+  responseRate          Float?   @default(0)
+  avgResponseTime       Int?     @default(0) // in minutes
+  isVerified            Boolean  @default(false)
+  verificationBadge     Boolean  @default(false)
+  totalActiveListings   Int      @default(0)
+  averageRating         Float    @default(0)
+  totalReviews          Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("landlord_profiles")
+}
+
+model HunterProfile {
+  id                    String        @id @default(uuid())
+  userId                String        @unique
+  occupation            String?
+  budgetMin             Float?
+  budgetMax             Float?
+  preferredStates       String[]      @default([])
+  preferredCities       String[]      @default([])
+  preferredPropertyType PropertyType?
+  desiredBedrooms       Int?
+  moveInDate            DateTime?
+  isVerified            Boolean       @default(false)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  // Relations
+  user                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("hunter_profiles")
+}
+
+// ============================================================================
+// PROPERTY MODELS
+// ============================================================================
+
+model Property {
+  id                String         @id @default(uuid())
+  landlordId        String
+  title             String
+  description       String
+  propertyType      PropertyType
+  status            PropertyStatus @default(DRAFT)
+
+  // Rooms
+  bedrooms          Int            @default(0)
+  bathrooms         Int            @default(0)
+  toilets           Int            @default(0)
+  squareMeters      Float?
+
+  // Pricing (in Naira)
+  rentAmount        Float
+  serviceCharge     Float?         @default(0)
+  agencyFee         Float?         @default(0)
+  legalFee          Float?         @default(0)
+  cautionFee        Float?         @default(0)
+  agreementFee      Float?         @default(0)
+  totalMoveInCost   Float?         // Auto-calculated
+
+  // Location
+  address           String
+  state             String
+  lga               String
+  area              String?
+  street            String?
+  latitude          Float?
+  longitude         Float?
+  nearbyLandmarks   String[]       @default([])
+
+  // Features
+  availabilityDate  DateTime?
+  isFurnished       Boolean        @default(false)
+  isNewlyBuilt      Boolean        @default(false)
+  isRenovated       Boolean        @default(false)
+  petsAllowed       Boolean        @default(false)
+  smokingAllowed    Boolean        @default(false)
+
+  // Amenities (stored as JSON for flexibility)
+  hasParking        Boolean        @default(false)
+  hasWaterSupply    Boolean        @default(false)
+  hasElectricity    Boolean        @default(false)
+  hasGenerator      Boolean        @default(false)
+  hasSolar          Boolean        @default(false)
+  hasSecurity       Boolean        @default(false)
+  hasInternet       Boolean        @default(false)
+  hasSwimmingPool   Boolean        @default(false)
+  hasGym            Boolean        @default(false)
+  hasBalcony        Boolean        @default(false)
+  hasPopCeiling     Boolean        @default(false)
+  hasWardrobes      Boolean        @default(false)
+  hasKitchenCabinets Boolean       @default(false)
+  hasAirConditioning Boolean       @default(false)
+  hasWaterHeater    Boolean        @default(false)
+  hasBorehole       Boolean        @default(false)
+  hasCctv           Boolean        @default(false)
+  isGatedEstate     Boolean        @default(false)
+  hasAccessibility  Boolean        @default(false)
+
+  // Listing control
+  isFeatured        Boolean        @default(false)
+  viewCount         Int            @default(0)
+  savedCount        Int            @default(0)
+  publishedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relations
+  landlord          User           @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  media             PropertyMedia[]
+  favorites         Favorite[]
+  reviews           Review[]
+  appointments      Appointment[]
+  views             PropertyView[]
+
+  @@index([landlordId])
+  @@index([state, lga])
+  @@index([propertyType])
+  @@index([status])
+  @@index([rentAmount])
+  @@index([bedrooms])
+  @@index([isFeatured])
+  @@index([createdAt])
+  @@map("properties")
+}
+
+model PropertyMedia {
+  id          String    @id @default(uuid())
+  propertyId  String
+  url         String
+  publicId    String?   // Cloudinary public ID
+  type        MediaType @default(IMAGE)
+  order       Int       @default(0)
+  width       Int?
+  height      Int?
+  size        Int?      // bytes
+  isOptimized Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  property    Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_media")
+}
+
+model PropertyView {
+  id         String   @id @default(uuid())
+  propertyId String
+  userId     String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([propertyId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("property_views")
+}
+
+// ============================================================================
+// CHAT MODELS
+// ============================================================================
+
+model Conversation {
+  id           String   @id @default(uuid())
+  propertyId   String?  // Optional: conversation about a specific property
+  lastMessage  String?
+  lastMessageAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id             String       @id @default(uuid())
+  conversationId String
+  userId         String
+  hasBlocked     Boolean      @default(false)
+  isDeleted      Boolean      @default(false)
+  lastReadAt     DateTime?
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  type           MessageType  @default(TEXT)
+  mediaUrl       String?
+  isDelivered    Boolean      @default(false)
+  isRead         Boolean      @default(false)
+  deliveredAt    DateTime?
+  readAt         DateTime?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([createdAt])
+  @@map("messages")
+}
+
+// ============================================================================
+// APPOINTMENT MODELS
+// ============================================================================
+
+model Appointment {
+  id              String            @id @default(uuid())
+  propertyId      String
+  hunterId        String
+  landlordId      String
+  scheduledDate   DateTime
+  scheduledTime   String
+  meetingLocation String?
+  notes           String?
+  status          AppointmentStatus @default(PENDING)
+  rejectionReason String?
+  suggestedDate   DateTime?
+  suggestedTime   String?
+  reminderSent    Boolean           @default(false)
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  // Relations
+  property        Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  hunter          User              @relation("HunterAppointments", fields: [hunterId], references: [id], onDelete: Cascade)
+  landlord        User              @relation("LandlordAppointments", fields: [landlordId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([hunterId])
+  @@index([landlordId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@map("appointments")
+}
+
+// ============================================================================
+// REVIEW MODELS
+// ============================================================================
+
+model Review {
+  id              String   @id @default(uuid())
+  reviewerId      String
+  landlordId      String
+  propertyId      String?
+  communication   Int      // 1-5
+  professionalism Int      // 1-5
+  accuracy        Int      // 1-5
+  overall         Int      // 1-5
+  comment         String?
+  photos          String[] @default([])
+  isModerated     Boolean  @default(false)
+  isApproved      Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  reviewer        User     @relation("ReviewsGiven", fields: [reviewerId], references: [id], onDelete: Cascade)
+  landlord        User     @relation("ReviewsReceived", fields: [landlordId], references: [id], onDelete: Cascade)
+  property        Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@index([landlordId])
+  @@index([reviewerId])
+  @@map("reviews")
+}
+
+// ============================================================================
+// FAVORITES MODELS
+// ============================================================================
+
+model Favorite {
+  id             String   @id @default(uuid())
+  userId         String
+  propertyId     String
+  collectionName String?  @default("Saved")
+  createdAt      DateTime @default(now())
+
+  // Relations
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property       Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+  @@map("favorites")
+}
+
+// ============================================================================
+// SUBSCRIPTION & PAYMENT MODELS
+// ============================================================================
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String
+  plan      SubscriptionPlan   @default(FREE)
+  status    SubscriptionStatus @default(ACTIVE)
+  startDate DateTime           @default(now())
+  endDate   DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  // Relations
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments  Payment[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id              String          @id @default(uuid())
+  userId          String
+  subscriptionId  String?
+  amount          Float
+  currency        String          @default("NGN")
+  provider        PaymentProvider
+  providerRef     String?         @unique // Payment reference from provider
+  status          PaymentStatus   @default(PENDING)
+  metadata        Json?
+  receiptUrl      String?
+  paidAt          DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Relations
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription    Subscription?   @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([providerRef])
+  @@map("payments")
+}
+
+// ============================================================================
+// NOTIFICATION MODEL
+// ============================================================================
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// ============================================================================
+// REPORT MODEL
+// ============================================================================
+
+model Report {
+  id          String           @id @default(uuid())
+  reporterId  String
+  targetType  ReportTargetType
+  targetId    String
+  reason      String
+  description String?
+  status      ReportStatus     @default(PENDING)
+  adminNotes  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  reporter    User             @relation("ReportsFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  target      User?            @relation("ReportsReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([targetId])
+  @@index([status])
+  @@map("reports")
+}
+
+// ============================================================================
+// AUTH MODELS
+// ============================================================================
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  type      String   // 'email' | 'phone' | 'reset_password'
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code])
+  @@map("otp_codes")
+}
+
+// ============================================================================
+// SEARCH HISTORY
+// ============================================================================
+
+model SearchHistory {
+  id        String   @id @default(uuid())
+  userId    String
+  query     String
+  filters   Json?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("search_histories")
+}
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  // Relations
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// LOCATION DATA (Nigerian States & LGAs)
+// ============================================================================
+
+model NigerianState {
+  id    String         @id @default(uuid())
+  name  String         @unique
+  slug  String         @unique
+  lgas  NigerianLGA[]
+
+  @@map("nigerian_states")
+}
+
+model NigerianLGA {
+  id      String        @id @default(uuid())
+  name    String
+  slug    String
+  stateId String
+
+  // Relations
+  state   NigerianState @relation(fields: [stateId], references: [id], onDelete: Cascade)
+
+  @@unique([name, stateId])
+  @@index([stateId])
+  @@map("nigerian_lgas")
+}
