@@ -1,0 +1,2 @@
+# Force LF line endings for Ruby files (Podfile) on all platforms
+Podfile text eol=lf
