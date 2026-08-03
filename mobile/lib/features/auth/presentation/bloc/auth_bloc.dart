@@ -2,6 +2,7 @@
 // Auth BLoC - State Management
 // ============================================================================
 
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../data/auth_repository.dart';
@@ -41,6 +42,10 @@ class AuthRegisterRequested extends AuthEvent {
 }
 
 class AuthLogoutRequested extends AuthEvent {}
+
+class AuthGoogleLoginRequested extends AuthEvent {}
+
+class AuthAppleLoginRequested extends AuthEvent {}
 
 class AuthForgotPassword extends AuthEvent {
   final String email;
@@ -88,17 +93,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthRegisterRequested>(_onRegister);
     on<AuthLogoutRequested>(_onLogout);
     on<AuthForgotPassword>(_onForgotPassword);
+    on<AuthGoogleLoginRequested>(_onGoogleLogin);
+    on<AuthAppleLoginRequested>(_onAppleLogin);
   }
 
   Future<void> _onCheckStatus(AuthCheckStatus event, Emitter<AuthState> emit) async {
     final isLoggedIn = await _repository.isLoggedIn();
     if (isLoggedIn) {
-      final role = await _repository.getUserRole() ?? 'HUNTER';
-      emit(AuthAuthenticated(user: {}, role: role));
-    } else {
-      emit(AuthUnauthenticated());
+      final user = await _repository.getCurrentUser();
+      if (user != null) {
+        final role = user['role'] as String? ?? 'HUNTER';
+        await _repository.getUserRole();
+        emit(AuthAuthenticated(user: user, role: role));
+        return;
+      }
     }
+    emit(AuthUnauthenticated());
   }
+
 
   Future<void> _onLogin(AuthLoginRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
@@ -129,6 +141,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
+  Future<void> _onGoogleLogin(AuthGoogleLoginRequested event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final data = await _repository.loginWithGoogle();
+      emit(AuthAuthenticated(user: data['user'], role: data['user']['role']));
+    } catch (e) {
+      emit(AuthError(message: _parseError(e)));
+    }
+  }
+
+  Future<void> _onAppleLogin(AuthAppleLoginRequested event, Emitter<AuthState> emit) async {
+    emit(AuthLoading());
+    try {
+      final data = await _repository.loginWithApple();
+      emit(AuthAuthenticated(user: data['user'], role: data['user']['role']));
+    } catch (e) {
+      emit(AuthError(message: _parseError(e)));
+    }
+  }
+
   Future<void> _onLogout(AuthLogoutRequested event, Emitter<AuthState> emit) async {
     await _repository.logout();
     emit(AuthUnauthenticated());
@@ -145,8 +177,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   String _parseError(dynamic error) {
-    if (error.toString().contains('DioException')) {
-      return 'Network error. Please check your connection.';
+    if (error is DioException) {
+      if (error.response?.data != null) {
+        final data = error.response?.data;
+        if (data is Map<String, dynamic> && data['message'] != null) {
+          final msg = data['message'];
+          if (msg is List) return msg.join(', ');
+          return msg.toString();
+        }
+      }
+      return 'Network error (${error.response?.statusCode ?? 'Connection failed'}). Please check backend connection.';
     }
     return error.toString().replaceAll('Exception: ', '');
   }

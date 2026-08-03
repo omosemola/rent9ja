@@ -3,6 +3,7 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class FavoritesScreen extends StatelessWidget {
@@ -10,11 +11,15 @@ class FavoritesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void showComingSoon(String feature) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Saved Properties'),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.folder_outlined)),
+          IconButton(onPressed: () => showComingSoon('Folders'), icon: const Icon(Icons.folder_outlined)),
         ],
       ),
       body: ListView.builder(
@@ -32,9 +37,11 @@ class FavoritesScreen extends StatelessWidget {
               decoration: BoxDecoration(color: AppColors.error.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
               child: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 28),
             ),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
+            child: GestureDetector(
+              onTap: () => context.push('/property/1'),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
                 color: Theme.of(context).cardTheme.color,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
@@ -45,10 +52,7 @@ class FavoritesScreen extends StatelessWidget {
                     width: 100, height: 100,
                     decoration: BoxDecoration(
                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-                      gradient: LinearGradient(colors: [
-                        AppColors.primary.withOpacity(0.2 + (index * 0.1)),
-                        AppColors.primaryDark.withOpacity(0.4),
-                      ]),
+                      color: AppColors.primarySurface,
                     ),
                     child: Center(child: Icon(Icons.home_rounded, size: 32, color: Colors.white.withOpacity(0.4))),
                   ),
@@ -72,6 +76,7 @@ class FavoritesScreen extends StatelessWidget {
                     child: Icon(Icons.favorite_rounded, color: AppColors.error, size: 22),
                   ),
                 ],
+                ),
               ),
             ),
           );

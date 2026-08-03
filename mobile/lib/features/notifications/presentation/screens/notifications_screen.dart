@@ -10,12 +10,16 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void showComingSoon(String feature) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () => showComingSoon('Mark all read'),
             child: Text('Mark all read', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -38,9 +42,11 @@ class NotificationsScreen extends StatelessWidget {
           final item = items[index % items.length];
           final isRead = item['read'] as bool;
 
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(14),
+          return GestureDetector(
+            onTap: () => showComingSoon('View Notification'),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isRead
                   ? Theme.of(context).cardTheme.color
@@ -101,7 +107,7 @@ class NotificationsScreen extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ));
         },
       ),
     );

@@ -3,6 +3,7 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class ConversationsScreen extends StatelessWidget {
@@ -10,11 +11,15 @@ class ConversationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void showComingSoon(String feature) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Messages'),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded)),
+          IconButton(onPressed: () => showComingSoon('Search Conversations'), icon: const Icon(Icons.search_rounded)),
         ],
       ),
       body: ListView.builder(
@@ -105,9 +110,7 @@ class ConversationsScreen extends StatelessWidget {
                     ),
                 ],
               ),
-              onTap: () {
-                // Navigate to chat detail
-              },
+              onTap: () => context.push('/chat/1'),
             ),
           );
         },

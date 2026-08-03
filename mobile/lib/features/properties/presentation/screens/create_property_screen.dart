@@ -35,6 +35,10 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
     super.dispose();
   }
 
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -42,7 +46,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
         title: const Text('List Property'),
         actions: [
           TextButton(
-            onPressed: () {},
+            onPressed: () => _showComingSoon('Save Draft'),
             child: Text('Save Draft', style: TextStyle(color: AppColors.textTertiary)),
           ),
         ],
@@ -183,15 +187,39 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
 
         Text('Amenities', style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 10),
-        Wrap(
-          spacing: 8, runSpacing: 8,
-          children: ['Parking', 'Security', 'Generator', 'Borehole', 'Internet', 'AC',
-            'Pool', 'Gym', 'Furnished', 'CCTV', 'Water Heater', 'Balcony', 'POP Ceiling',
-          ].map((a) => FilterChip(
-            label: Text(a),
-            selected: _selectedAmenities.contains(a),
-            onSelected: (s) => setState(() => s ? _selectedAmenities.add(a) : _selectedAmenities.remove(a)),
-          )).toList(),
+        Builder(
+          builder: (context) {
+            final amenityIcons = {
+              'Parking': Icons.local_parking_rounded,
+              'Security': Icons.security_rounded,
+              'Generator': Icons.electric_bolt_rounded,
+              'Borehole': Icons.water_drop_rounded,
+              'Internet': Icons.wifi_rounded,
+              'AC': Icons.ac_unit_rounded,
+              'Pool': Icons.pool_rounded,
+              'Gym': Icons.fitness_center_rounded,
+              'Furnished': Icons.chair_rounded,
+              'CCTV': Icons.videocam_rounded,
+              'Water Heater': Icons.hot_tub_rounded,
+              'Balcony': Icons.balcony_rounded,
+              'POP Ceiling': Icons.roofing_rounded,
+            };
+
+            return Wrap(
+              spacing: 8, runSpacing: 8,
+              children: amenityIcons.entries.map((e) {
+                final isSelected = _selectedAmenities.contains(e.key);
+                return FilterChip(
+                  avatar: Icon(e.value, size: 16, color: isSelected ? Colors.white : AppColors.textTertiary),
+                  label: Text(e.key, style: TextStyle(color: isSelected ? Colors.white : null)),
+                  selected: isSelected,
+                  selectedColor: AppColors.primary,
+                  showCheckmark: false,
+                  onSelected: (s) => setState(() => s ? _selectedAmenities.add(e.key) : _selectedAmenities.remove(e.key)),
+                );
+              }).toList(),
+            );
+          }
         ),
         const SizedBox(height: 32),
       ],
@@ -199,14 +227,17 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
   }
 
   Widget _buildLocation() {
+    final nigerianStates = [
+      'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno', 'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe', 'Zamfara', 'Federal Capital Territory (FCT)'
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
           value: _selectedState,
           decoration: const InputDecoration(labelText: 'State'),
-          items: ['Lagos', 'Abuja FCT', 'Rivers', 'Oyo', 'Enugu', 'Anambra', 'Delta', 'Edo', 'Kaduna', 'Kano']
-              .map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+          items: nigerianStates.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
           onChanged: (v) => setState(() => _selectedState = v!),
         ),
         const SizedBox(height: 16),
@@ -302,9 +333,7 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
 
         // Upload area
         GestureDetector(
-          onTap: () {
-            // TODO: Open image picker
-          },
+          onTap: () => _showComingSoon('Image Picker'),
           child: Container(
             height: 180,
             decoration: BoxDecoration(
@@ -353,10 +382,13 @@ class _CreatePropertyScreenState extends State<CreatePropertyScreen> {
                 Center(child: Icon(Icons.image_rounded, color: AppColors.primary.withOpacity(0.3), size: 32)),
                 Positioned(
                   top: 6, right: 6,
-                  child: Container(
-                    width: 24, height: 24,
-                    decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
-                    child: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                  child: GestureDetector(
+                    onTap: () => _showComingSoon('Remove Photo'),
+                    child: Container(
+                      width: 24, height: 24,
+                      decoration: const BoxDecoration(color: AppColors.error, shape: BoxShape.circle),
+                      child: const Icon(Icons.close_rounded, size: 16, color: Colors.white),
+                    ),
                   ),
                 ),
                 if (index == 0)

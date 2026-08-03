@@ -10,6 +10,10 @@ class SubscriptionPlansScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    void showComingSoon(String feature) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Subscription Plans')),
       body: SingleChildScrollView(
@@ -137,7 +141,7 @@ class SubscriptionPlansScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () => showComingSoon('Upgrade to Premium'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: AppColors.primaryDark,

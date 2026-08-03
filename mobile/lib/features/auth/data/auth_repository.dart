@@ -1,6 +1,9 @@
 // ============================================================================
-// Auth Repository
+// Auth Repository - Connects to NestJS REST API
 // ============================================================================
+
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -23,13 +26,19 @@ class AuthRepository {
       'password': password,
       'fullName': fullName,
       'role': role,
-      if (phone != null) 'phone': phone,
+      if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
     });
 
-    final data = response.data;
-    await _storage.saveTokens(data['accessToken'], data['refreshToken']);
-    await _storage.saveUserId(data['user']['id']);
-    await _storage.saveUserRole(data['user']['role']);
+    final data = response.data as Map<String, dynamic>;
+    if (data['accessToken'] != null) {
+      await _storage.saveTokens(
+        data['accessToken'] as String,
+        data['refreshToken'] as String,
+      );
+      final user = data['user'] as Map<String, dynamic>;
+      await _storage.saveUserId(user['id'] as String);
+      await _storage.saveUserRole(user['role'] as String);
+    }
 
     return data;
   }
@@ -43,10 +52,88 @@ class AuthRepository {
       'password': password,
     });
 
-    final data = response.data;
-    await _storage.saveTokens(data['accessToken'], data['refreshToken']);
-    await _storage.saveUserId(data['user']['id']);
-    await _storage.saveUserRole(data['user']['role']);
+    final data = response.data as Map<String, dynamic>;
+    if (data['accessToken'] != null) {
+      await _storage.saveTokens(
+        data['accessToken'] as String,
+        data['refreshToken'] as String,
+      );
+      final user = data['user'] as Map<String, dynamic>;
+      await _storage.saveUserId(user['id'] as String);
+      await _storage.saveUserRole(user['role'] as String);
+    }
+
+    return data;
+  }
+
+  Future<Map<String, dynamic>> loginWithGoogle() async {
+    await GoogleSignIn.instance.initialize(
+      // clientId: 'YOUR_WEB_CLIENT_ID', // Replace with your actual Client ID when available
+    );
+
+    GoogleSignInAccount account;
+    try {
+      account = await GoogleSignIn.instance.authenticate(
+        scopeHint: ['email', 'profile'],
+      );
+    } catch (e) {
+      throw Exception('Google Sign-In was cancelled or failed.');
+    }
+
+    final GoogleSignInAuthentication auth = account.authentication;
+    final String? idToken = auth.idToken;
+
+    if (idToken == null) {
+      throw Exception('Failed to obtain ID token from Google.');
+    }
+
+    final response = await _api.post('/auth/google', data: {
+      'idToken': idToken,
+    });
+
+    final data = response.data as Map<String, dynamic>;
+    if (data['accessToken'] != null) {
+      await _storage.saveTokens(
+        data['accessToken'] as String,
+        data['refreshToken'] as String,
+      );
+      final user = data['user'] as Map<String, dynamic>;
+      await _storage.saveUserId(user['id'] as String);
+      await _storage.saveUserRole(user['role'] as String);
+    }
+
+    return data;
+  }
+
+  Future<Map<String, dynamic>> loginWithApple() async {
+    final AuthorizationCredentialAppleID credential = await SignInWithApple.getAppleIDCredential(
+      scopes: [
+        AppleIDAuthorizationScopes.email,
+        AppleIDAuthorizationScopes.fullName,
+      ],
+    );
+
+    final String? idToken = credential.identityToken;
+    if (idToken == null) {
+      throw Exception('Failed to obtain ID token from Apple.');
+    }
+
+    final response = await _api.post('/auth/apple', data: {
+      'idToken': idToken,
+      'firstName': credential.givenName,
+      'lastName': credential.familyName,
+    });
+
+    final data = response.data as Map<String, dynamic>;
+    if (data['accessToken'] != null) {
+      await _storage.saveTokens(
+        data['accessToken'] as String,
+        data['refreshToken'] as String,
+      );
+      final user = data['user'] as Map<String, dynamic>;
+      await _storage.saveUserId(user['id'] as String);
+      await _storage.saveUserRole(user['role'] as String);
+    }
 
     return data;
   }
@@ -55,8 +142,11 @@ class AuthRepository {
     try {
       final refreshToken = await _storage.getRefreshToken();
       await _api.post('/auth/logout', data: {'refreshToken': refreshToken});
-    } catch (_) {}
-    await _storage.clearAll();
+    } catch (_) {
+      // Clear local storage regardless of API server state
+    } finally {
+      await _storage.clearAll();
+    }
   }
 
   Future<void> forgotPassword(String email) async {
@@ -77,4 +167,14 @@ class AuthRepository {
 
   Future<bool> isLoggedIn() => _storage.isLoggedIn();
   Future<String?> getUserRole() => _storage.getUserRole();
+
+  Future<Map<String, dynamic>?> getCurrentUser() async {
+    try {
+      final response = await _api.get('/users/me');
+      return response.data as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
 }
+

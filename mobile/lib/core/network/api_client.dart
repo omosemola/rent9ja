@@ -12,9 +12,10 @@ class ApiClient {
 
   // Change this to your backend URL
   static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:3000/api/v1';
-    return 'http://10.0.2.2:3000/api/v1'; // Android emulator
+    if (kIsWeb) return 'http://localhost:3001/api/v1';
+    return 'http://10.0.2.2:3001/api/v1'; // Android emulator
   }
+
 
   ApiClient(this._storage) {
     dio = Dio(BaseOptions(

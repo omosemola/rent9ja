@@ -43,6 +43,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.dispose();
   }
 
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+  }
+
   void _sendMessage() {
     if (_messageController.text.trim().isEmpty) return;
     setState(() {
@@ -106,8 +110,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ],
         ),
         actions: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.phone_outlined)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert_rounded)),
+          IconButton(onPressed: () => _showComingSoon('Call'), icon: const Icon(Icons.phone_outlined)),
+          IconButton(onPressed: () => _showComingSoon('More Options'), icon: const Icon(Icons.more_vert_rounded)),
         ],
       ),
 
@@ -234,7 +238,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: IconButton(
-                    onPressed: () {},
+                    onPressed: () => _showComingSoon('Attachments'),
                     icon: Icon(Icons.add_rounded, color: AppColors.textSecondary, size: 22),
                   ),
                 ),

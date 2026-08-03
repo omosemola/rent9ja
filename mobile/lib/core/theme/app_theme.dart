@@ -45,23 +45,17 @@ class AppColors {
   static const Color warning = Color(0xFFF59E0B);
   static const Color info = Color(0xFF2563EB);
 
-  // Gradient
+  // Solid UI Color Schemes (Gradients Removed)
   static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [primary, Color(0xFF059669)],
+    colors: [primary, primary],
   );
 
   static const LinearGradient goldGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [accent, Color(0xFFEAB308)],
+    colors: [accent, accent],
   );
 
   static const LinearGradient heroGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [Color(0x00000000), Color(0xCC000000)],
+    colors: [Color(0xCC000000), Color(0xCC000000)],
   );
 }
 

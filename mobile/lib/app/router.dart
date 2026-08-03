@@ -14,7 +14,13 @@ import '../features/properties/presentation/screens/property_detail_screen.dart'
 import '../features/chat/presentation/screens/conversations_screen.dart';
 import '../features/profile/presentation/screens/profile_screen.dart';
 import '../features/favorites/presentation/screens/favorites_screen.dart';
-
+import '../features/profile/presentation/screens/edit_profile_screen.dart';
+import '../features/notifications/presentation/screens/notifications_screen.dart';
+import '../features/chat/presentation/screens/chat_detail_screen.dart';
+import '../features/properties/presentation/screens/create_property_screen.dart';
+import '../features/reviews/presentation/screens/reviews_screen.dart';
+import '../features/subscriptions/presentation/screens/subscription_plans_screen.dart';
+import '../features/appointments/presentation/screens/appointment_booking_screen.dart';
 class AppRouter {
   static final GoRouter router = GoRouter(
     initialLocation: '/onboarding',
@@ -69,6 +75,40 @@ class AppRouter {
         path: '/property/:id',
         builder: (context, state) => PropertyDetailScreen(
           propertyId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/chat/:id',
+        builder: (context, state) => ChatDetailScreen(
+          recipientName: state.extra as String? ?? 'Landlord / Agent',
+        ),
+      ),
+      GoRoute(
+        path: '/create-property',
+        builder: (context, state) => const CreatePropertyScreen(),
+      ),
+      GoRoute(
+        path: '/reviews/:id',
+        builder: (context, state) => const ReviewsScreen(),
+      ),
+      GoRoute(
+        path: '/subscriptions',
+        builder: (context, state) => const SubscriptionPlansScreen(),
+      ),
+      GoRoute(
+        path: '/book-appointment/:id',
+        builder: (context, state) => AppointmentBookingScreen(
+          propertyId: state.pathParameters['id']!,
+          propertyTitle: 'Property Inspection',
+          landlordName: 'Landlord',
         ),
       ),
     ],

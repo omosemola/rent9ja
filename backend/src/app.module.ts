@@ -22,6 +22,7 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { MediaModule } from './modules/media/media.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     AdminModule,
     AnalyticsModule,
   ],
+  controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
@@ -66,3 +68,4 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
   ],
 })
 export class AppModule {}
+

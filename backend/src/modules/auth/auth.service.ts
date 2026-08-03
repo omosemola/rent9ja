@@ -128,6 +128,70 @@ export class AuthService {
     };
   }
 
+  async loginWithGoogle(idToken: string) {
+    // TODO: Verify the idToken using google-auth-library
+    // const ticket = await client.verifyIdToken({ idToken, audience: CLIENT_ID });
+    // const payload = ticket.getPayload();
+    // const email = payload.email;
+    
+    // MOCK IMPLEMENTATION FOR NOW
+    const email = 'mock.google.user@example.com';
+    const fullName = 'Google User';
+
+    return this.findOrCreateSocialUser(email, fullName, 'google');
+  }
+
+  async loginWithApple(idToken: string, firstName?: string, lastName?: string) {
+    // TODO: Verify the idToken using apple-signin-auth
+    // const payload = await appleSignin.verifyIdToken(idToken, { audience: CLIENT_ID });
+    // const email = payload.email;
+    
+    // MOCK IMPLEMENTATION FOR NOW
+    const email = 'mock.apple.user@example.com';
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'Apple User';
+
+    return this.findOrCreateSocialUser(email, fullName, 'apple');
+  }
+
+  private async findOrCreateSocialUser(email: string, fullName: string, provider: string) {
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+      include: { landlordProfile: true, hunterProfile: true },
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          fullName,
+          passwordHash: '', // No password for social logins
+          role: UserRole.HUNTER, // Default role for social signups
+          isEmailVerified: true, // Social emails are inherently verified
+          hunterProfile: { create: {} },
+        },
+        include: { landlordProfile: true, hunterProfile: true },
+      });
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account has been suspended');
+    }
+
+    // Update last login
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    const tokens = await this.generateTokens(user.id, user.role);
+
+    return {
+      message: 'Login successful',
+      user: this.sanitizeUser(user),
+      ...tokens,
+    };
+  }
+
   /**
    * Refresh access token
    */

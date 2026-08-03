@@ -29,6 +29,10 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$feature coming soon!')));
+  }
+
   void _handleLogin() {
     if (_formKey.currentState!.validate()) {
       context.read<AuthBloc>().add(AuthLoginRequested(
@@ -86,19 +90,115 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Sign in to continue finding your perfect home',
+                    'Sign in to your RentNaija Landlord or Tenant account',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: AppColors.textSecondary,
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
+
+                  // Quick Account Fill Pills
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '⚡ QUICK ONE-TAP LOGIN',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF064E3B),
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  _emailController.text = 'adebayo.properties@gmail.com';
+                                  _passwordController.text = 'Password123!';
+                                  _handleLogin();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF064E3B),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.apartment_rounded, color: Colors.white, size: 18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Landlord',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  _emailController.text = 'tunde.seeker@gmail.com';
+                                  _passwordController.text = 'Password123!';
+                                  _handleLogin();
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFCBD5E1)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.person_search_rounded, color: Color(0xFF0F172A), size: 18),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Tenant',
+                                        style: TextStyle(
+                                          color: Color(0xFF0F172A),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
 
                   // Form
                   Form(
                     key: _formKey,
                     child: Column(
                       children: [
+
                         // Email
                         TextFormField(
                           controller: _emailController,
@@ -165,9 +265,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ],
                             ),
                             TextButton(
-                              onPressed: () {
-                                // Navigate to forgot password
-                              },
+                              onPressed: () => _showComingSoon('Forgot Password'),
                               child: const Text(
                                 'Forgot Password?',
                                 style: TextStyle(fontWeight: FontWeight.w600),
@@ -223,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: _SocialButton(
                                 icon: Icons.g_mobiledata_rounded,
                                 label: 'Google',
-                                onTap: () {},
+                                onTap: () => context.read<AuthBloc>().add(AuthGoogleLoginRequested()),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -231,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: _SocialButton(
                                 icon: Icons.apple_rounded,
                                 label: 'Apple',
-                                onTap: () {},
+                                onTap: () => context.read<AuthBloc>().add(AuthAppleLoginRequested()),
                               ),
                             ),
                           ],
