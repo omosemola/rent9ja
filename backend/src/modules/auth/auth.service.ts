@@ -18,7 +18,7 @@ import { OtpService } from './otp.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UserRole } from '@prisma/client';
-
+import { OAuth2Client } from 'google-auth-library';
 @Injectable()
 export class AuthService {
   constructor(
@@ -28,6 +28,8 @@ export class AuthService {
     private redisService: RedisService,
     private otpService: OtpService,
   ) {}
+
+  private googleClient = new OAuth2Client(this.configService.get('GOOGLE_CLIENT_ID'));
 
   /**
    * Register a new user
@@ -129,29 +131,34 @@ export class AuthService {
   }
 
   async loginWithGoogle(idToken: string) {
-    // TODO: Verify the idToken using google-auth-library
-    // const ticket = await client.verifyIdToken({ idToken, audience: CLIENT_ID });
-    // const payload = ticket.getPayload();
-    // const email = payload.email;
-    
-    // MOCK IMPLEMENTATION FOR NOW
-    const email = 'mock.google.user@example.com';
-    const fullName = 'Google User';
+    const clientId = this.configService.get('GOOGLE_CLIENT_ID');
+    if (!clientId || clientId.includes('PLACEHOLDER')) {
+      // Fallback for development if real client ID isn't set yet
+      console.warn('Using mock Google Sign-In because GOOGLE_CLIENT_ID is not properly configured.');
+      return this.findOrCreateSocialUser('mock.google.user@example.com', 'Google User', 'google');
+    }
 
-    return this.findOrCreateSocialUser(email, fullName, 'google');
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: clientId,
+      });
+      const payload = ticket.getPayload();
+      
+      if (!payload || !payload.email) {
+        throw new UnauthorizedException('Invalid Google token payload');
+      }
+
+      const email = payload.email;
+      const fullName = payload.name || 'Google User';
+
+      return this.findOrCreateSocialUser(email, fullName, 'google');
+    } catch (error) {
+      throw new UnauthorizedException('Failed to verify Google token: ' + error.message);
+    }
   }
 
-  async loginWithApple(idToken: string, firstName?: string, lastName?: string) {
-    // TODO: Verify the idToken using apple-signin-auth
-    // const payload = await appleSignin.verifyIdToken(idToken, { audience: CLIENT_ID });
-    // const email = payload.email;
-    
-    // MOCK IMPLEMENTATION FOR NOW
-    const email = 'mock.apple.user@example.com';
-    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'Apple User';
 
-    return this.findOrCreateSocialUser(email, fullName, 'apple');
-  }
 
   private async findOrCreateSocialUser(email: string, fullName: string, provider: string) {
     let user = await this.prisma.user.findUnique({

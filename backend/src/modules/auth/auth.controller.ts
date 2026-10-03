@@ -50,13 +50,6 @@ export class AuthController {
     return this.authService.loginWithGoogle(body.idToken);
   }
 
-  @Post('apple')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Login with Apple Identity Token' })
-  async loginWithApple(@Body() body: { idToken: string; firstName?: string; lastName?: string }) {
-    return this.authService.loginWithApple(body.idToken, body.firstName, body.lastName);
-  }
-
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })
